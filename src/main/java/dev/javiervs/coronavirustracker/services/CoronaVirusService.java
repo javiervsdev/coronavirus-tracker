@@ -9,6 +9,10 @@ import java.util.List;
 public interface CoronaVirusService {
     List<LocationStats> getAllStats();
 
+    int getTotalReportedCases();
+
+    int getTotalNewCases();
+
     @PostConstruct
     void loadActualCoronaVirusData() throws IOException, InterruptedException;
 }

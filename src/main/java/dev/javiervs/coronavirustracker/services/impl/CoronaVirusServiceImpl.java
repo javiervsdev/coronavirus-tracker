@@ -35,6 +35,20 @@ public class CoronaVirusServiceImpl implements CoronaVirusService {
     }
 
     @Override
+    public int getTotalReportedCases() {
+        return allStats.stream()
+                .mapToInt(LocationStats::getLatestTotalCases)
+                .sum();
+    }
+
+    @Override
+    public int getTotalNewCases() {
+        return allStats.stream()
+                .mapToInt(LocationStats::getDiffFromPrevDay)
+                .sum();
+    }
+
+    @Override
     @PostConstruct
     @Scheduled(cron = "* * 1 * * *")
     public void loadActualCoronaVirusData() throws IOException, InterruptedException {
@@ -50,11 +64,19 @@ public class CoronaVirusServiceImpl implements CoronaVirusService {
     }
 
     private final Function<CSVRecord, LocationStats> csvRecordToLocationStats =
-            record -> LocationStats.builder()
-                    .state(record.get("Province/State"))
-                    .country(record.get("Country/Region"))
-                    .latestTotalCases(Integer.parseInt(record.get(record.size() - 1)))
-                    .build();
+            record -> {
+                int latestCases = Integer.parseInt(record.get(record.size() - 1));
+                int prevDayCases = record.size() >= 2
+                        ? Integer.parseInt(record.get(record.size() - 2))
+                        : 0;
+
+                return LocationStats.builder()
+                        .state(record.get("Province/State"))
+                        .country(record.get("Country/Region"))
+                        .latestTotalCases(latestCases)
+                        .diffFromPrevDay(latestCases - prevDayCases)
+                        .build();
+            };
 
     private String fetchVirusData() throws IOException, InterruptedException {
         HttpClient client = HttpClient.newHttpClient();
